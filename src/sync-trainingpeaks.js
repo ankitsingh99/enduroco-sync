@@ -1,6 +1,7 @@
 const EndurocoScraper = require('./scraper');
 const TrainingPeaksClient = require('./trainingpeaks');
 const WorkoutBuilder = require('./workout-builder');
+const injectWorkoutsToTrainingPeaks = require('./tp-calendar-inject');
 const SyncState = require('./sync-state');
 require('dotenv').config();
 
@@ -27,7 +28,6 @@ async function runSync(options = { force: false }) {
 
     // 2. Format and Build Structured Workouts (.ZWO)
     console.log('\n[Step 2] Building structured workouts (.ZWO) for TrainingPeaks / COROS...');
-    const tpClient = new TrainingPeaksClient();
     const workoutsToSync = [];
 
     if (scrapedData?.interceptedWorkouts?.length) {
@@ -68,36 +68,16 @@ async function runSync(options = { force: false }) {
     const exportedFiles = WorkoutBuilder.exportAllZWO(uniqueWorkouts);
     console.log(`Generated ${exportedFiles.length} structured .ZWO workout files in data/workouts_export/.`);
 
-    // 3. Connect TrainingPeaks in Enduroco and Sync
-    console.log('\n[Step 3] Ensuring TrainingPeaks synchronization...');
-    
-    if (process.env.TRAININGPEAKS_USERNAME && process.env.TRAININGPEAKS_PASSWORD) {
-      console.log('Verifying TrainingPeaks OAuth integration...');
-      try {
-        await tpClient.authorizeEndurocoIntegration(true);
-      } catch (err) {
-        console.log('TrainingPeaks connection note:', err.message);
-      }
-    }
-
-    if (process.env.TRAININGPEAKS_ACCESS_TOKEN) {
-      console.log('Pushing workouts directly via TrainingPeaks API...');
-      for (const workout of uniqueWorkouts) {
-        try {
-          await tpClient.createPlannedWorkout(workout);
-          console.log(`[OK] Pushed: [${workout.date}] ${workout.title} (${workout.workoutType})`);
-        } catch (err) {
-          console.error(`[ERROR] Failed to push ${workout.title}:`, err.message);
-        }
-      }
-    }
+    // 3. Automated Direct Placement on TrainingPeaks Calendar
+    console.log('\n[Step 3] Placing planned workouts directly on TrainingPeaks Calendar...');
+    const placedCount = await injectWorkoutsToTrainingPeaks();
 
     // Record successful sync
-    SyncState.recordSuccess({ workoutCount: uniqueWorkouts.length, filesExported: exportedFiles.length });
+    SyncState.recordSuccess({ workoutCount: uniqueWorkouts.length, placedCount });
 
     console.log('\n====================================================');
-    console.log('Sync and export completed successfully.');
-    console.log(`Structured workout files are available at: data/workouts_export/`);
+    console.log('Sync and Calendar placement completed successfully.');
+    console.log(`All ${placedCount} workouts are visible on your TrainingPeaks & COROS calendars.`);
     console.log('====================================================');
   } catch (error) {
     console.error('\n[SYNC FAILED]', error.message);
