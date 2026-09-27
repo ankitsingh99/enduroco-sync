@@ -1,5 +1,6 @@
 const EndurocoScraper = require('./scraper');
 const TrainingPeaksClient = require('./trainingpeaks');
+const WorkoutBuilder = require('./workout-builder');
 const SyncState = require('./sync-state');
 require('dotenv').config();
 
@@ -24,8 +25,8 @@ async function runSync(options = { force: false }) {
     const scrapedData = await scraper.scrapeWorkouts({ headless: false, days: 14 });
     console.log('Enduroco scrape completed successfully.');
 
-    // 2. Format Workouts for TrainingPeaks
-    console.log('\n[Step 2] Formatting workouts for TrainingPeaks...');
+    // 2. Format and Build Structured Workouts (.ZWO)
+    console.log('\n[Step 2] Building structured workouts (.ZWO) for TrainingPeaks / COROS...');
     const tpClient = new TrainingPeaksClient();
     const workoutsToSync = [];
 
@@ -35,12 +36,16 @@ async function runSync(options = { force: false }) {
         for (const day of list) {
           if (day.workouts && Array.isArray(day.workouts)) {
             for (const item of day.workouts) {
+              const sec = item.duration || item.workout_doc?.duration || 0;
+              const mins = sec > 0 ? Math.round(sec / 60) : (item.duration || 30);
               workoutsToSync.push({
-                title: item.title || item.name || 'Enduroco Workout',
+                title: item.title || item.name || item.subtype || 'Enduroco Workout',
                 date: day.workoutdate || new Date().toISOString().split('T')[0],
+                sport: item.type || 'Bike',
                 workoutType: (item.type || 'Bike').toLowerCase().includes('run') ? 'Run' : 'Bike',
-                description: item.description || `Enduroco planned workout (${item.duration || 60}m)`,
-                durationMinutes: item.duration || 60
+                description: item.description || item.workout_doc?.description || `Enduroco planned workout (${mins}m)`,
+                durationMinutes: mins,
+                load: item.tss || day.tss || null
               });
             }
           }
@@ -48,7 +53,20 @@ async function runSync(options = { force: false }) {
       }
     }
 
-    console.log(`Found ${workoutsToSync.length} workout(s) parsed from Enduroco.`);
+    // Deduplicate
+    const uniqueWorkouts = [];
+    const seen = new Set();
+    workoutsToSync.forEach((w) => {
+      const k = `${w.date}-${w.workoutType}-${w.title}`;
+      if (!seen.has(k)) {
+        seen.add(k);
+        uniqueWorkouts.push(w);
+      }
+    });
+
+    // Export ZWO files
+    const exportedFiles = WorkoutBuilder.exportAllZWO(uniqueWorkouts);
+    console.log(`Generated ${exportedFiles.length} structured .ZWO workout files in data/workouts_export/.`);
 
     // 3. Connect TrainingPeaks in Enduroco and Sync
     console.log('\n[Step 3] Ensuring TrainingPeaks synchronization...');
@@ -64,7 +82,7 @@ async function runSync(options = { force: false }) {
 
     if (process.env.TRAININGPEAKS_ACCESS_TOKEN) {
       console.log('Pushing workouts directly via TrainingPeaks API...');
-      for (const workout of workoutsToSync) {
+      for (const workout of uniqueWorkouts) {
         try {
           await tpClient.createPlannedWorkout(workout);
           console.log(`[OK] Pushed: [${workout.date}] ${workout.title} (${workout.workoutType})`);
@@ -75,16 +93,15 @@ async function runSync(options = { force: false }) {
     }
 
     // Record successful sync
-    SyncState.recordSuccess({ workoutCount: workoutsToSync.length });
+    SyncState.recordSuccess({ workoutCount: uniqueWorkouts.length, filesExported: exportedFiles.length });
 
     console.log('\n====================================================');
-    console.log('Sync process completed successfully.');
-    console.log('Workouts are synchronized to TrainingPeaks and COROS.');
+    console.log('Sync and export completed successfully.');
+    console.log(`Structured workout files are available at: data/workouts_export/`);
     console.log('====================================================');
   } catch (error) {
     console.error('\n[SYNC FAILED]', error.message);
     SyncState.recordFailure(error);
-    console.log('Failure recorded. The tool will automatically retry on next execution.');
     process.exitCode = 1;
   }
 }
