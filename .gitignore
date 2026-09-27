@@ -1,0 +1,21 @@
+# Dependency directories
+node_modules/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+.env.local
+
+# Browser session & profile directories
+.browser_profile/
+.browser_profile_python/
+.tp_browser_profile/
+
+# Data cache and logs
+data/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

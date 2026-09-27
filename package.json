@@ -1,0 +1,30 @@
+{
+  "name": "enduroco-sync",
+  "version": "1.0.0",
+  "description": "Automated Enduroco workout scraper & TrainingPeaks / COROS sync tool",
+  "main": "src/index.js",
+  "bin": {
+    "enduroco-sync": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node bin/cli.js sync",
+    "scrape": "node bin/cli.js scrape",
+    "sync:tp": "node bin/cli.js tp",
+    "sync:coros": "node bin/cli.js coros",
+    "sync:all": "node src/index.js"
+  },
+  "keywords": [
+    "enduroco",
+    "trainingpeaks",
+    "coros",
+    "workout-sync",
+    "scraper",
+    "cli"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "puppeteer": "^24.4.0"
+  }
+}
