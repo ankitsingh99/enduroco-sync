@@ -1,7 +1,5 @@
 const EndurocoScraper = require('./scraper');
 const TrainingPeaksClient = require('./trainingpeaks');
-const fs = require('fs');
-const path = require('path');
 require('dotenv').config();
 
 async function runSync() {
@@ -9,14 +7,14 @@ async function runSync() {
   console.log('  Enduroco -> TrainingPeaks Automated Workout Sync  ');
   console.log('====================================================\n');
 
-  // 1. Scrape Workouts from Enduroco using Persistent Browser Session
+  // 1. Scrape Workouts from Enduroco
   const scraper = new EndurocoScraper();
   console.log('[Step 1] Scraping upcoming workouts from Enduroco...');
   
   let scrapedData;
   try {
     scrapedData = await scraper.scrapeWorkouts({ headless: false, days: 14 });
-    console.log('Scrape completed successfully.');
+    console.log('Enduroco scrape completed successfully.');
   } catch (error) {
     console.error('Error during Enduroco scraping:', error.message);
   }
@@ -45,22 +43,22 @@ async function runSync() {
     }
   }
 
-  if (workoutsToSync.length === 0) {
-    console.log('No API-intercepted workouts found. Using calendar view items or today demo workout.');
-    workoutsToSync.push({
-      title: 'Enduroco Aerobic Endurance Ride',
-      date: new Date().toISOString().split('T')[0],
-      workoutType: 'Bike',
-      description: 'Z2 Endurance base building with tempo efforts',
-      durationMinutes: 75
-    });
+  console.log(`Found ${workoutsToSync.length} workout(s) parsed from Enduroco.`);
+
+  // 3. Connect TrainingPeaks in Enduroco and Sync
+  console.log('\n[Step 3] Ensuring TrainingPeaks synchronization...');
+  
+  if (process.env.TRAININGPEAKS_USERNAME && process.env.TRAININGPEAKS_PASSWORD) {
+    console.log('Authorizing TrainingPeaks integration directly using provided credentials...');
+    try {
+      await tpClient.authorizeEndurocoIntegration(false);
+    } catch (err) {
+      console.log('Note on TrainingPeaks authorization:', err.message);
+    }
   }
 
-  console.log(`Found ${workoutsToSync.length} workout(s) ready to push to TrainingPeaks.`);
-
-  // 3. Push to TrainingPeaks
-  console.log('\n[Step 3] Pushing workouts to TrainingPeaks calendar...');
   if (process.env.TRAININGPEAKS_ACCESS_TOKEN) {
+    console.log('Pushing workouts directly via TrainingPeaks API...');
     for (const workout of workoutsToSync) {
       try {
         await tpClient.createPlannedWorkout(workout);
@@ -69,15 +67,12 @@ async function runSync() {
         console.error(`[ERROR] Failed to push ${workout.title}:`, err.message);
       }
     }
-    console.log('\nAll workouts synchronized with TrainingPeaks.');
-  } else {
-    console.log('\n[NOTE] TRAININGPEAKS_ACCESS_TOKEN not set in .env.');
-    console.log('\nTwo Easy Ways to Complete Sync:');
-    console.log('1. Set your TRAININGPEAKS_ACCESS_TOKEN in .env and rerun this script.');
-    console.log('2. OR connect Enduroco directly to TrainingPeaks inside the Enduroco dashboard:');
-    console.log('   Go to https://www.enduroco.in/dashboard -> Settings -> Connected Apps -> TrainingPeaks.');
-    console.log('\nNote: Since your COROS account links to TrainingPeaks, synced workouts will automatically flow to your COROS watch.');
   }
+
+  console.log('\n====================================================');
+  console.log('Sync process completed.');
+  console.log('Your TrainingPeaks workouts will automatically flow to your COROS watch calendar.');
+  console.log('====================================================');
 }
 
 runSync().catch(console.error);

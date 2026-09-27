@@ -6,6 +6,8 @@ require('dotenv').config();
 const USER_DATA_DIR = path.resolve(__dirname, '../.browser_profile');
 const WORKOUTS_CACHE_FILE = path.resolve(__dirname, '../data/workouts.json');
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 class EndurocoScraper {
   constructor() {
     this.userDataDir = USER_DATA_DIR;
@@ -57,12 +59,12 @@ class EndurocoScraper {
 
     page.on('response', async (res) => {
       const url = res.url();
-      if (url.includes('workouts') || url.includes('activities') || url.includes('calendar')) {
+      if (url.includes('workout') || url.includes('activities') || url.includes('calendar') || url.includes('getworkouts')) {
         try {
           const contentType = res.headers()['content-type'] || '';
           if (contentType.includes('application/json')) {
             const json = await res.json().catch(() => null);
-            if (json && (json.workouts || Array.isArray(json))) {
+            if (json) {
               console.log(`Intercepted workout data payload from: ${url.slice(0, 60)}...`);
               interceptedWorkouts.push(json);
             }
@@ -88,18 +90,17 @@ class EndurocoScraper {
         { timeout: 180000 }
       );
       console.log('Login detected! Navigating to workout calendar...');
-      await page.waitForTimeout(3000);
+      await delay(3000);
     }
 
     // Navigate to calendar if not already there
     await page.goto('https://www.enduroco.in/calendar', { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
-    await page.waitForTimeout(4000);
+    await delay(4000);
 
-    // Scrape DOM elements for scheduled workouts
+    // Also check if we can connect TrainingPeaks directly inside Enduroco if needed
     console.log('Extracting workout cards from calendar view...');
     const domWorkouts = await page.evaluate(() => {
       const items = [];
-      // Look for workout card buttons or sections
       const buttons = document.querySelectorAll('button');
       buttons.forEach((btn) => {
         const text = btn.innerText || '';
