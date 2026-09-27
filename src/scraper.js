@@ -74,7 +74,7 @@ class EndurocoScraper {
     const currentUrl = page.url();
     if (currentUrl.includes('login') || currentUrl.includes('signup')) {
       console.log('\n======================================================');
-      console.log('⚠️  Please sign in with your Google Account in the browser.');
+      console.log('Please sign in with your Google Account in the browser.');
       console.log('Your session will be saved for future automatic runs.');
       console.log('======================================================\n');
 

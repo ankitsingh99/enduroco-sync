@@ -94,9 +94,9 @@ def push_to_trainingpeaks(workouts):
         }
         res = requests.post(f"{TP_API_BASE}/workouts/planned", json=payload, headers=headers)
         if res.status_code in [200, 201]:
-            print(f"✓ Pushed to TrainingPeaks: {payload['title']} ({payload['workoutDate']})")
+            print(f"[OK] Pushed to TrainingPeaks: {payload['title']} ({payload['workoutDate']})")
         else:
-            print(f"✗ Failed to push {payload['title']}: {res.text}")
+            print(f"[ERROR] Failed to push {payload['title']}: {res.text}")
 
 if __name__ == "__main__":
     print("=== Enduroco -> TrainingPeaks Python Automation ===")

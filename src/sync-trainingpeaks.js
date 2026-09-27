@@ -64,19 +64,19 @@ async function runSync() {
     for (const workout of workoutsToSync) {
       try {
         await tpClient.createPlannedWorkout(workout);
-        console.log(`✓ Pushed: [${workout.date}] ${workout.title} (${workout.workoutType})`);
+        console.log(`[OK] Pushed: [${workout.date}] ${workout.title} (${workout.workoutType})`);
       } catch (err) {
-        console.error(`✗ Failed to push ${workout.title}:`, err.message);
+        console.error(`[ERROR] Failed to push ${workout.title}:`, err.message);
       }
     }
-    console.log('\n✅ All workouts synchronized with TrainingPeaks!');
+    console.log('\nAll workouts synchronized with TrainingPeaks.');
   } else {
-    console.log('\n⚠️  TRAININGPEAKS_ACCESS_TOKEN not set in .env.');
-    console.log('\n💡 Two Easy Ways to Complete Sync:');
+    console.log('\n[NOTE] TRAININGPEAKS_ACCESS_TOKEN not set in .env.');
+    console.log('\nTwo Easy Ways to Complete Sync:');
     console.log('1. Set your TRAININGPEAKS_ACCESS_TOKEN in .env and rerun this script.');
     console.log('2. OR connect Enduroco directly to TrainingPeaks inside the Enduroco dashboard:');
     console.log('   Go to https://www.enduroco.in/dashboard -> Settings -> Connected Apps -> TrainingPeaks.');
-    console.log('\nNote: Since your COROS account links to TrainingPeaks, synced workouts will automatically flow to your COROS watch!');
+    console.log('\nNote: Since your COROS account links to TrainingPeaks, synced workouts will automatically flow to your COROS watch.');
   }
 }
 
