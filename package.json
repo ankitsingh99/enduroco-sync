@@ -9,8 +9,10 @@
   "scripts": {
     "start": "node bin/cli.js sync",
     "scrape": "node bin/cli.js scrape",
+    "import": "node bin/cli.js import",
     "sync:tp": "node bin/cli.js tp",
     "sync:coros": "node bin/cli.js coros",
+    "open:coros": "node src/open-coros-hub.js",
     "sync:all": "node src/index.js"
   },
   "keywords": [
