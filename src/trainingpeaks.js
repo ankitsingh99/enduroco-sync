@@ -30,8 +30,12 @@ class TrainingPeaksClient {
     }
 
     console.log('Logging into TrainingPeaks web session...');
+    const systemChrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    const executablePath = fs.existsSync(systemChrome) ? systemChrome : undefined;
+
     const browser = await puppeteer.launch({
       headless: headless ? 'new' : false,
+      executablePath,
       userDataDir: TP_USER_DATA_DIR,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
