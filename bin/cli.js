@@ -24,6 +24,7 @@ switch (action) {
   case 'sync':
   default:
     console.log('Running Enduroco -> TrainingPeaks sync...');
-    require('../src/sync-trainingpeaks');
+    const runSync = require('../src/sync-trainingpeaks');
+    runSync({ force: true }).catch(console.error);
     break;
 }
